@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useEditorStore } from '../../stores/editor';
 
 const store = useEditorStore();
@@ -74,6 +74,22 @@ const flattenComponents = (componentList, level = 0, parentId = null) => {
 };
 
 const flattenedComponents = computed(() => flattenComponents(components.value));
+
+// Hover management với absolute control
+const hoveredItemId = ref(null);
+
+const handleItemHover = (itemId, event) => {
+  event.stopPropagation();
+  hoveredItemId.value = itemId;
+};
+
+const handleItemLeave = (itemId, event) => {
+  event.stopPropagation();
+  // Chỉ clear nếu đang hover item này
+  if (hoveredItemId.value === itemId) {
+    hoveredItemId.value = null;
+  }
+};
 </script>
 
 <template>
@@ -96,9 +112,11 @@ const flattenedComponents = computed(() => flattenComponents(components.value));
           v-for="item in flattenedComponents" 
           :key="item.id"
           class="component-tree-item"
+          @mouseenter="handleItemHover(item.id, $event)"
+          @mouseleave="handleItemLeave(item.id, $event)"
         >
           <div 
-            class="flex items-center p-2 rounded cursor-pointer group transition-all"
+            class="component-row flex items-center p-2 rounded cursor-pointer transition-all relative"
             :class="{
               'bg-blue-100 border border-blue-300': item.id === store.selectedComponent,
               'hover:bg-gray-100': item.id !== store.selectedComponent
@@ -127,7 +145,10 @@ const flattenedComponents = computed(() => flattenComponents(components.value));
             </div>
             
             <!-- Actions -->
-            <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div 
+              class="component-actions flex items-center space-x-1 transition-opacity"
+              :style="{ opacity: hoveredItemId === item.id ? 1 : 0 }"
+            >
               <button 
                 @click.stop="item.parentId ? removeChildComponent(item.parentId, item.id) : removeComponent(item.id)"
                 class="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
@@ -150,7 +171,7 @@ const flattenedComponents = computed(() => flattenComponents(components.value));
   font-family: system-ui, sans-serif;
 }
 
-.component-tree-item .group:hover .opacity-0 {
-  opacity: 1;
+.component-actions {
+  transition: opacity 0.15s ease-in-out;
 }
 </style>

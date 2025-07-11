@@ -1,5 +1,5 @@
 <script setup>
-import { defineProps, computed } from 'vue';
+import { defineProps, computed, ref } from 'vue';
 import { useEditorStore } from '../../stores/editor';
 
 const store = useEditorStore();
@@ -9,6 +9,21 @@ const props = defineProps({
     required: true
   }
 });
+
+// Hover management for controls
+const hoveredComponent = ref(null);
+
+const handleComponentHover = (componentId, event) => {
+  event.stopPropagation();
+  hoveredComponent.value = componentId;
+};
+
+const handleComponentLeave = (componentId, event) => {
+  event.stopPropagation();
+  if (hoveredComponent.value === componentId) {
+    hoveredComponent.value = null;
+  }
+};
 
 const componentStyle = computed(() => {
   if (store.isPreviewMode || store.outputType !== 'tailwind') {
@@ -38,7 +53,27 @@ const handleContainerDrop = (event, containerId) => {
   event.preventDefault();
   
   if (store.currentlyDragging) {
-    store.addChildToContainer(containerId, store.currentlyDragging);
+    if (store.currentlyDragging.from === 'existing') {
+      // Handle moving existing component
+      const originalId = store.currentlyDragging.originalId;
+      
+      // Remove from original location first
+      store.removeComponent(originalId);
+      
+      // Create new component with new ID
+      const newComponent = {
+        ...store.currentlyDragging,
+        id: `${store.currentlyDragging.type}-${Date.now()}`,
+      };
+      delete newComponent.from;
+      delete newComponent.originalId;
+      
+      // Add to container
+      store.addChildToContainer(containerId, newComponent);
+    } else {
+      // Handle new component from toolbox
+      store.addChildToContainer(containerId, store.currentlyDragging);
+    }
     store.setDragging(null);
   }
 };
@@ -47,10 +82,63 @@ const handleDragOver = (event) => {
   event.preventDefault();
   event.stopPropagation();
 };
+
+const handleDragStart = (event, componentId) => {
+  event.stopPropagation();
+  
+  // Get the actual component data
+  const component = store.findComponentById(componentId);
+  if (component) {
+    // Set the component data for drag operation
+    event.dataTransfer.setData('text/plain', JSON.stringify({
+      ...component,
+      from: 'existing'
+    }));
+    store.setDragging({
+      ...component,
+      from: 'existing',
+      originalId: componentId
+    });
+  }
+};
+
+const handleDragEnd = (event) => {
+  event.stopPropagation();
+  store.setDragging(null);
+};
 </script>
 
 <template>
-  <div class="component-preview">
+  <div 
+    class="component-wrapper relative"
+    @mouseenter="handleComponentHover(component.id, $event)"
+    @mouseleave="handleComponentLeave(component.id, $event)"
+  >
+    <!-- Control buttons for the main component -->
+    <div 
+      v-if="!store.isPreviewMode"
+      class="component-handle absolute top-0 left-0 -mt-4 -ml-4 bg-blue-500 text-white p-1 rounded cursor-move z-10 transition-opacity" 
+      :style="{ opacity: hoveredComponent === component.id ? 1 : 0 }"
+      draggable="true"
+      @dragstart="handleDragStart($event, component.id)"
+      @dragend="handleDragEnd"
+    >
+      <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M10 3L8.59 4.41 13.17 9H3v2h10.17l-4.58 4.59L10 17l6-6z"></path>
+      </svg>
+    </div>
+    
+    <button 
+      v-if="!store.isPreviewMode"
+      @click="store.removeComponent(component.id)"
+      class="absolute top-0 right-0 -mt-4 -mr-4 bg-red-500 text-white p-1 rounded z-10 transition-opacity" 
+      :style="{ opacity: hoveredComponent === component.id ? 1 : 0 }"
+    >
+      <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+      </svg>
+    </button>
+
     <header v-if="component.type === 'header'" :class="componentClasses" :style="componentStyle">
       {{ component.content }}
     </header>
@@ -155,17 +243,19 @@ const handleDragOver = (event) => {
         <div 
           v-for="child in component.children" 
           :key="child.id" 
-          class="relative component-wrapper mb-2 group"
+          class="relative component-wrapper mb-2"
           :class="{'component-selected': child.id === store.selectedComponent}"
           @click.stop="store.selectComponent(child.id)"
+          @dragstart.stop="handleDragStart($event, child.id)"
+          @dragend.stop="handleDragEnd"
         >
-          <div class="component-handle absolute top-0 left-0 -mt-4 -ml-4 bg-blue-500 text-white p-1 rounded cursor-move opacity-0 group-hover:opacity-100 z-10">
+          <div class="component-handle absolute top-0 left-0 -mt-4 -ml-4 bg-blue-500 text-white p-1 rounded cursor-move z-10 transition-opacity" :style="{ opacity: hoveredComponent === child.id ? 1 : 0 }" draggable="true" @dragstart="handleDragStart($event, child.id)" @dragend="handleDragEnd">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
               <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
             </svg>
           </div>
           <button 
-            class="absolute top-0 right-0 -mt-4 -mr-4 bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 z-10"
+            class="absolute top-0 right-0 -mt-4 -mr-4 bg-red-500 text-white p-1 rounded z-10 transition-opacity" :style="{ opacity: hoveredComponent === child.id ? 1 : 0 }"
             @click.stop="removeChildComponent(component.id, child.id)"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -192,17 +282,19 @@ const handleDragOver = (event) => {
         <div 
           v-for="child in component.children" 
           :key="child.id" 
-          class="relative component-wrapper mb-2 group"
+          class="relative component-wrapper mb-2"
           :class="{'component-selected': child.id === store.selectedComponent}"
           @click.stop="store.selectComponent(child.id)"
+          @dragstart.stop="handleDragStart($event, child.id)"
+          @dragend.stop="handleDragEnd"
         >
-          <div class="component-handle absolute top-0 left-0 -mt-4 -ml-4 bg-blue-500 text-white p-1 rounded cursor-move opacity-0 group-hover:opacity-100 z-10">
+          <div class="component-handle absolute top-0 left-0 -mt-4 -ml-4 bg-blue-500 text-white p-1 rounded cursor-move z-10 transition-opacity" :style="{ opacity: hoveredComponent === child.id ? 1 : 0 }" draggable="true" @dragstart="handleDragStart($event, child.id)" @dragend="handleDragEnd">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
               <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
             </svg>
           </div>
           <button 
-            class="absolute top-0 right-0 -mt-4 -mr-4 bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 z-10"
+            class="absolute top-0 right-0 -mt-4 -mr-4 bg-red-500 text-white p-1 rounded z-10 transition-opacity" :style="{ opacity: hoveredComponent === child.id ? 1 : 0 }"
             @click.stop="removeChildComponent(component.id, child.id)"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -231,17 +323,19 @@ const handleDragOver = (event) => {
         <div 
           v-for="child in component.children" 
           :key="child.id" 
-          class="relative component-wrapper mb-2 group"
+          class="relative component-wrapper mb-2"
           :class="{'component-selected': child.id === store.selectedComponent}"
           @click.stop="store.selectComponent(child.id)"
+          @dragstart.stop="handleDragStart($event, child.id)"
+          @dragend.stop="handleDragEnd"
         >
-          <div class="component-handle absolute top-0 left-0 -mt-4 -ml-4 bg-blue-500 text-white p-1 rounded cursor-move opacity-0 group-hover:opacity-100 z-10">
+          <div class="component-handle absolute top-0 left-0 -mt-4 -ml-4 bg-blue-500 text-white p-1 rounded cursor-move z-10 transition-opacity" :style="{ opacity: hoveredComponent === child.id ? 1 : 0 }" draggable="true" @dragstart="handleDragStart($event, child.id)" @dragend="handleDragEnd">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
               <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
             </svg>
           </div>
           <button 
-            class="absolute top-0 right-0 -mt-4 -mr-4 bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 z-10"
+            class="absolute top-0 right-0 -mt-4 -mr-4 bg-red-500 text-white p-1 rounded z-10 transition-opacity" :style="{ opacity: hoveredComponent === child.id ? 1 : 0 }"
             @click.stop="removeChildComponent(component.id, child.id)"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -273,17 +367,19 @@ const handleDragOver = (event) => {
         <div 
           v-for="child in component.children" 
           :key="child.id" 
-          class="relative component-wrapper mb-2 group"
+          class="relative component-wrapper mb-2"
           :class="{'component-selected': child.id === store.selectedComponent}"
           @click.stop="store.selectComponent(child.id)"
+          @dragstart.stop="handleDragStart($event, child.id)"
+          @dragend.stop="handleDragEnd"
         >
-          <div class="component-handle absolute top-0 left-0 -mt-4 -ml-4 bg-blue-500 text-white p-1 rounded cursor-move opacity-0 group-hover:opacity-100 z-10">
+          <div class="component-handle absolute top-0 left-0 -mt-4 -ml-4 bg-blue-500 text-white p-1 rounded cursor-move z-10 transition-opacity" :style="{ opacity: hoveredComponent === child.id ? 1 : 0 }" draggable="true" @dragstart="handleDragStart($event, child.id)" @dragend="handleDragEnd">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
               <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
             </svg>
           </div>
           <button 
-            class="absolute top-0 right-0 -mt-4 -mr-4 bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 z-10"
+            class="absolute top-0 right-0 -mt-4 -mr-4 bg-red-500 text-white p-1 rounded z-10 transition-opacity" :style="{ opacity: hoveredComponent === child.id ? 1 : 0 }"
             @click.stop="removeChildComponent(component.id, child.id)"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -444,10 +540,5 @@ const handleDragOver = (event) => {
 .component-handle {
   cursor: move;
   z-index: 10;
-}
-
-.component-wrapper:hover .component-handle,
-.component-wrapper:hover button {
-  opacity: 1;
 }
 </style>

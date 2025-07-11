@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { useStorage } from '@vueuse/core'
 import { toast } from 'vue3-toastify'
 import { generateCSSFromProperties } from '../utils/element-properties'
+import beautify from 'html-beautify'
 
 export const useEditorStore = defineStore('editor', {
   state: () => ({
@@ -143,12 +144,37 @@ export const useEditorStore = defineStore('editor', {
       // Save current state for undo
       this.saveState();
       
+      // First try to find and remove from root level
       const index = this.components.findIndex(c => c.id === id);
       if (index !== -1) {
         this.components.splice(index, 1);
         this.selectedComponent = null;
         toast.success('Component removed');
+        return;
       }
+      
+      // If not found at root level, search in nested components
+      const removeFromChildren = (componentList) => {
+        for (let i = 0; i < componentList.length; i++) {
+          const component = componentList[i];
+          if (component.children) {
+            const childIndex = component.children.findIndex(child => child.id === id);
+            if (childIndex !== -1) {
+              component.children.splice(childIndex, 1);
+              this.selectedComponent = null;
+              toast.success('Component removed');
+              return true;
+            }
+            // Recursively search in nested children
+            if (removeFromChildren(component.children)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+      
+      removeFromChildren(this.components);
     },
     
     moveComponent(oldIndex, newIndex) {
@@ -262,8 +288,8 @@ export const useEditorStore = defineStore('editor', {
       } else if (this.outputType === 'css-classes') {
         html += '  <style>\n';
         
-        // Add custom CSS classes for each component
-        this.components.forEach(component => {
+        // Add custom CSS classes for each component (including nested ones)
+        this.getAllComponents().forEach(component => {
           if (component.customStyles) {
             html += `    .component-${component.id} {\n`;
             for (const [key, value] of Object.entries(component.customStyles)) {
@@ -278,376 +304,299 @@ export const useEditorStore = defineStore('editor', {
       
       html += '</head>\n<body>\n';
       
-      // Add components
+      // Add components recursively
       this.components.forEach(component => {
-        // Determine which classes/styles to use based on output type
-        let classAttribute = '';
-        let styleAttribute = '';
-        
-        if (this.outputType === 'tailwind') {
-          classAttribute = component.classes ? ` class="${component.classes}"` : '';
-        } else if (this.outputType === 'css-classes') {
-          classAttribute = ` class="component-${component.id}"`;
-        } else if (this.outputType === 'inline-styles') {
-          if (component.customStyles) {
-            const styleStr = Object.entries(component.customStyles)
-              .map(([key, value]) => {
-                // Convert camelCase to kebab-case for CSS
-                const kebabKey = key.replace(/([A-Z])/g, "-$1").toLowerCase();
-                return `${kebabKey}: ${value}`;
-              })
-              .join('; ');
-            styleAttribute = styleStr ? ` style="${styleStr}"` : '';
-          }
-        }
-        
-        switch (component.type) {
-          case 'header':
-            html += `  <header${classAttribute}${styleAttribute}>${component.content}</header>\n`;
-            break;
-          case 'paragraph':
-            html += `  <p${classAttribute}${styleAttribute}>${component.content}</p>\n`;
-            break;
-          case 'heading':
-            const level = component.level || 1;
-            html += `  <h${level}${classAttribute}${styleAttribute}>${component.content}</h${level}>\n`;
-            break;
-          case 'button':
-            html += `  <button${classAttribute}${styleAttribute}>${component.content}</button>\n`;
-            break;
-          case 'image':
-            html += `  <img src="${component.src}" alt="${component.alt || ''}"${classAttribute}${styleAttribute}>\n`;
-            break;
-          case 'hero':
-            html += `  <section${classAttribute}${styleAttribute}>\n`;
-            html += `    <div class="container">\n`;
-            html += `      <h2>${component.heading}</h2>\n`;
-            html += `      <p>${component.subheading}</p>\n`;
-            html += `      <div class="hero-content">\n`;
-            html += `        <div class="hero-text">\n`;
-            html += `          <p>${component.content}</p>\n`;
-            html += `        </div>\n`;
-            html += `        <div class="hero-image">\n`;
-            html += `          <img src="${component.imageUrl}" alt="Hero image">\n`;
-            html += `        </div>\n`;
-            html += `      </div>\n`;
-            html += `    </div>\n`;
-            html += `  </section>\n`;
-            break;
-          case 'features':
-            html += `  <section${classAttribute}${styleAttribute}>\n`;
-            html += `    <div class="container">\n`;
-            if (component.items && component.items.length > 0) {
-              component.items.forEach(item => {
-                html += `      <div class="feature-item">\n`;
-                html += `        <h3>${item.title}</h3>\n`;
-                html += `        <p>${item.description}</p>\n`;
-                html += `      </div>\n`;
-              });
-            }
-            html += `    </div>\n`;
-            html += `  </section>\n`;
-            break;
-          case 'cta':
-            html += `  <section${classAttribute}${styleAttribute}>\n`;
-            html += `    <div class="container">\n`;
-            html += `      <h2>${component.heading}</h2>\n`;
-            html += `      <button>${component.buttonText}</button>\n`;
-            html += `    </div>\n`;
-            html += `  </section>\n`;
-            break;
-          case 'container':
-            html += `  <div${classAttribute}${styleAttribute}>\n`;
-            if (component.children && component.children.length > 0) {
-              // Handle nested components (simplified for now)
-              html += `    <!-- Container with ${component.children.length} children -->\n`;
-            } else {
-              html += `    <!-- Empty Container -->\n`;
-            }
-            html += `  </div>\n`;
-            break;
-          case 'grid':
-            html += `  <div${classAttribute}${styleAttribute}>\n`;
-            if (component.items && component.items.length > 0) {
-              component.items.forEach(item => {
-                html += `    <div class="grid-item">${item.content}</div>\n`;
-              });
-            }
-            html += `  </div>\n`;
-            break;
-          case 'link':
-            const target = component.target === '_blank' ? ' target="_blank"' : '';
-            html += `  <a href="${component.href}"${target}${classAttribute}${styleAttribute}>${component.content}</a>\n`;
-            break;
-          case 'dropdown':
-            html += `  <select${classAttribute}${styleAttribute}>\n`;
-            html += `    <option value="">${component.label}</option>\n`;
-            if (component.options && component.options.length > 0) {
-              component.options.forEach(option => {
-                html += `    <option value="${option.value}">${option.label}</option>\n`;
-              });
-            }
-            html += `  </select>\n`;
-            break;
-          case 'table':
-            html += `  <table${classAttribute}${styleAttribute}>\n`;
-            if (component.headers && component.headers.length > 0) {
-              html += `    <thead>\n      <tr>\n`;
-              component.headers.forEach(header => {
-                html += `        <th>${header.content || header}</th>\n`;
-              });
-              html += `      </tr>\n    </thead>\n`;
-            }
-            if (component.rows && component.rows.length > 0) {
-              html += `    <tbody>\n`;
-              component.rows.forEach(row => {
-                html += `      <tr>\n`;
-                if (row.cells) {
-                  row.cells.forEach(cell => {
-                    html += `        <td>${cell.content || cell}</td>\n`;
-                  });
-                } else {
-                  row.forEach(cell => {
-                    html += `        <td>${cell}</td>\n`;
-                  });
-                }
-                html += `      </tr>\n`;
-              });
-              html += `    </tbody>\n`;
-            }
-            html += `  </table>\n`;
-            break;
-          case 'card':
-            html += `  <div${classAttribute}${styleAttribute}>\n`;
-            if (component.imageUrl) {
-              html += `    <img src="${component.imageUrl}" alt="Card image">\n`;
-            }
-            html += `    <div class="card-content">\n`;
-            html += `      <h3>${component.title}</h3>\n`;
-            html += `      <p>${component.content}</p>\n`;
-            if (component.buttonText) {
-              html += `      <button>${component.buttonText}</button>\n`;
-            }
-            html += `    </div>\n`;
-            html += `  </div>\n`;
-            break;
-          case 'input':
-            html += `  <div${classAttribute}${styleAttribute}>\n`;
-            if (component.label) {
-              html += `    <label>${component.label}</label>\n`;
-            }
-            html += `    <input type="${component.inputType || 'text'}" placeholder="${component.placeholder || ''}"${component.required ? ' required' : ''}>\n`;
-            html += `  </div>\n`;
-            break;
-          case 'textarea':
-            html += `  <div${classAttribute}${styleAttribute}>\n`;
-            if (component.label) {
-              html += `    <label>${component.label}</label>\n`;
-            }
-            html += `    <textarea placeholder="${component.placeholder || ''}" rows="${component.rows || 4}"${component.required ? ' required' : ''}></textarea>\n`;
-            html += `  </div>\n`;
-            break;
-          case 'select':
-            html += `  <div${classAttribute}${styleAttribute}>\n`;
-            if (component.label) {
-              html += `    <label>${component.label}</label>\n`;
-            }
-            html += `    <select>\n`;
-            html += `      <option value="">${component.placeholder || 'Choose an option'}</option>\n`;
-            if (component.options && component.options.length > 0) {
-              component.options.forEach(option => {
-                html += `      <option value="${option.value}">${option.label}</option>\n`;
-              });
-            }
-            html += `    </select>\n`;
-            html += `  </div>\n`;
-            break;
-          case 'grid':
-            html += `  <div${classAttribute}${styleAttribute}>\n`;
-            if (component.children && component.children.length > 0) {
-              component.children.forEach(child => {
-                html += this.componentToHTML(child, '', indentLevel + 1);
-              });
-            } else {
-              for (let i = 1; i <= (component.columns || 3); i++) {
-                html += `    <div class="grid-item">Grid Item ${i}</div>\n`;
-              }
-            }
-            html += `  </div>\n`;
-            break;
-          case 'flexbox':
-            html += `  <div${classAttribute}${styleAttribute}>\n`;
-            if (component.children && component.children.length > 0) {
-              component.children.forEach(child => {
-                html += this.componentToHTML(child, '', indentLevel + 1);
-              });
-            } else {
-              html += `    <div class="flex-item">Flex Item 1</div>\n`;
-              html += `    <div class="flex-item">Flex Item 2</div>\n`;
-            }
-            html += `  </div>\n`;
-            break;
-          case 'section':
-            html += `  <section${classAttribute}${styleAttribute}>\n`;
-            if (component.children && component.children.length > 0) {
-              component.children.forEach(child => {
-                html += this.componentToHTML(child, '', indentLevel + 1);
-              });
-            }
-            html += `  </section>\n`;
-            break;
-          case 'navbar':
-            html += `  <nav${classAttribute}${styleAttribute}>\n`;
-            html += `    <div class="nav-container">\n`;
-            html += `      <div class="nav-brand">${component.brand}</div>\n`;
-            if (component.items && component.items.length > 0) {
-              html += `      <ul class="nav-menu">\n`;
-              component.items.forEach(item => {
-                html += `        <li><a href="${item.href}">${item.label}</a></li>\n`;
-              });
-              html += `      </ul>\n`;
-            }
-            html += `    </div>\n`;
-            html += `  </nav>\n`;
-            break;
-          case 'footer':
-            html += `  <footer${classAttribute}${styleAttribute}>\n`;
-            html += `    <div class="footer-container">\n`;
-            html += `      <div class="footer-brand">${component.brand}</div>\n`;
-            if (component.columns && component.columns.length > 0) {
-              component.columns.forEach(column => {
-                html += `      <div class="footer-column">\n`;
-                html += `        <h4>${column.title}</h4>\n`;
-                if (column.links && column.links.length > 0) {
-                  html += `        <ul>\n`;
-                  column.links.forEach(link => {
-                    html += `          <li><a href="${link.href}">${link.label}</a></li>\n`;
-                  });
-                  html += `        </ul>\n`;
-                }
-                html += `      </div>\n`;
-              });
-            }
-            html += `      <div class="footer-copyright">${component.copyright}</div>\n`;
-            html += `    </div>\n`;
-            html += `  </footer>\n`;
-            break;
-          case 'contact':
-            html += `  <div${classAttribute}${styleAttribute}>\n`;
-            html += `    <h2>${component.title}</h2>\n`;
-            html += `    <p>${component.subtitle}</p>\n`;
-            html += `    <form>\n`;
-            if (component.fields && component.fields.length > 0) {
-              component.fields.forEach(field => {
-                html += `      <div class="form-group">\n`;
-                html += `        <label for="${field.name}">${field.label}${field.required ? ' *' : ''}</label>\n`;
-                if (field.type === 'textarea') {
-                  html += `        <textarea id="${field.name}" name="${field.name}" placeholder="${field.placeholder}"${field.required ? ' required' : ''}></textarea>\n`;
-                } else {
-                  html += `        <input type="${field.type}" id="${field.name}" name="${field.name}" placeholder="${field.placeholder}"${field.required ? ' required' : ''}>\n`;
-                }
-                html += `      </div>\n`;
-              });
-            }
-            html += `      <button type="submit">${component.submitText}</button>\n`;
-            html += `    </form>\n`;
-            html += `  </div>\n`;
-            break;
-          case 'testimonial':
-            html += `  <div${classAttribute}${styleAttribute}>\n`;
-            if (component.avatar) {
-              html += `    <img src="${component.avatar}" alt="Avatar" class="testimonial-avatar">\n`;
-            }
-            html += `    <blockquote>"${component.quote}"</blockquote>\n`;
-            html += `    <div class="testimonial-author">\n`;
-            html += `      <div class="author-name">${component.author}</div>\n`;
-            html += `      <div class="author-position">${component.position}</div>\n`;
-            if (component.rating) {
-              html += `      <div class="rating">${'★'.repeat(component.rating)}${'☆'.repeat(5 - component.rating)}</div>\n`;
-            }
-            html += `    </div>\n`;
-            html += `  </div>\n`;
-            break;
-          case 'navigation':
-            html += `  <nav${classAttribute}${styleAttribute}>\n`;
-            html += `    <div class="nav-container">\n`;
-            html += `      <div class="nav-brand">${component.brand}</div>\n`;
-            if (component.items && component.items.length > 0) {
-              html += `      <ul class="nav-menu">\n`;
-              component.items.forEach(item => {
-                html += `        <li><a href="${item.href}">${item.label}</a></li>\n`;
-              });
-              html += `      </ul>\n`;
-            }
-            html += `    </div>\n`;
-            html += `  </nav>\n`;
-            break;
-          case 'form':
-            html += `  <form${classAttribute}${styleAttribute}>\n`;
-            if (component.title) {
-              html += `    <h3>${component.title}</h3>\n`;
-            }
-            if (component.fields && component.fields.length > 0) {
-              component.fields.forEach(field => {
-                html += `    <div class="form-group">\n`;
-                html += `      <label for="${field.name}">${field.label}</label>\n`;
-                if (field.type === 'textarea') {
-                  html += `      <textarea id="${field.name}" name="${field.name}" placeholder="${field.placeholder}"></textarea>\n`;
-                } else {
-                  html += `      <input type="${field.type}" id="${field.name}" name="${field.name}" placeholder="${field.placeholder}">\n`;
-                }
-                html += `    </div>\n`;
-              });
-            }
-            html += `    <button type="submit">${component.submitText}</button>\n`;
-            html += `  </form>\n`;
-            break;
-          case 'list':
-            const listTag = component.listType || 'ul';
-            html += `  <${listTag}${classAttribute}${styleAttribute}>\n`;
-            if (component.items && component.items.length > 0) {
-              component.items.forEach(item => {
-                html += `    <li>${item}</li>\n`;
-              });
-            }
-            html += `  </${listTag}>\n`;
-            break;
-          // Add more component types as needed
-        }
+        html += this.componentToHTML(component, 1);
       });
-      
+
       // Add basic responsive styles if not using Tailwind
       if (this.outputType !== 'tailwind') {
-        html += '  <style>\n';
-        html += '    /* Basic responsive styles */\n';
-        html += '    .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 15px; }\n';
-        html += '    img { max-width: 100%; height: auto; }\n';
-        html += '    table { border-collapse: collapse; width: 100%; }\n';
-        html += '    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }\n';
-        html += '    th { background-color: #f4f4f4; font-weight: bold; }\n';
-        html += '    .form-group { margin-bottom: 1rem; }\n';
-        html += '    .form-group label { display: block; margin-bottom: 0.5rem; font-weight: bold; }\n';
-        html += '    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }\n';
-        html += '    .card-content { padding: 1rem; }\n';
-        html += '    .nav-container { display: flex; justify-content: space-between; align-items: center; }\n';
-        html += '    .nav-menu { list-style: none; display: flex; gap: 1rem; margin: 0; padding: 0; }\n';
-        html += '    .nav-menu a { text-decoration: none; color: inherit; }\n';
-        html += '    .grid-item { background-color: #f0f0f0; padding: 1rem; border-radius: 4px; }\n';
-        html += '    @media (min-width: 768px) {\n';
-        html += '      .hero-content { display: flex; align-items: center; }\n';
-        html += '      .hero-text, .hero-image { width: 50%; }\n';
-        html += '      .feature-item { display: inline-block; width: calc(33.333% - 20px); margin: 10px; vertical-align: top; }\n';
-        html += '    }\n';
-        html += '    @media (max-width: 767px) {\n';
-        html += '      .feature-item { margin-bottom: 20px; }\n';
-        html += '      .nav-container { flex-direction: column; }\n';
-        html += '      .nav-menu { margin-top: 1rem; }\n';
-        html += '      table, th, td { font-size: 0.9rem; }\n';
-        html += '    }\n';
-        html += '  </style>\n';
+        html += '\n<style>\n';
+        html += '  /* Basic responsive styles */\n';
+        html += '  .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 15px; }\n';
+        html += '  img { max-width: 100%; height: auto; }\n';
+        html += '  table { border-collapse: collapse; width: 100%; }\n';
+        html += '  th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }\n';
+        html += '  th { background-color: #f4f4f4; font-weight: bold; }\n';
+        html += '  .form-group { margin-bottom: 1rem; }\n';
+        html += '  .form-group label { display: block; margin-bottom: 0.5rem; font-weight: bold; }\n';
+        html += '  .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }\n';
+        html += '  .card-content { padding: 1rem; }\n';
+        html += '  .nav-container { display: flex; justify-content: space-between; align-items: center; }\n';
+        html += '  .nav-menu { list-style: none; display: flex; gap: 1rem; margin: 0; padding: 0; }\n';
+        html += '  .nav-menu a { text-decoration: none; color: inherit; }\n';
+        html += '  .grid-item { background-color: #f0f0f0; padding: 1rem; border-radius: 4px; }\n';
+        html += '  @media (min-width: 768px) {\n';
+        html += '    .hero-content { display: flex; align-items: center; }\n';
+        html += '    .hero-text, .hero-image { width: 50%; }\n';
+        html += '    .feature-item { display: inline-block; width: calc(33.333% - 20px); margin: 10px; vertical-align: top; }\n';
+        html += '  }\n';
+        html += '  @media (max-width: 767px) {\n';
+        html += '    .feature-item { margin-bottom: 20px; }\n';
+        html += '    .nav-container { flex-direction: column; }\n';
+        html += '    .nav-menu { margin-top: 1rem; }\n';
+        html += '    table, th, td { font-size: 0.9rem; }\n';
+        html += '  }\n';
+        html += '</style>\n';
       }
       
       html += '</body>\n</html>';
+
+      return beautify(html, { indent_size: 2 });
+    },
+
+    // Helper method to get all components including nested ones
+    getAllComponents() {
+      const allComponents = [];
+      
+      const collectComponents = (componentList) => {
+        componentList.forEach(component => {
+          allComponents.push(component);
+          if (component.children && component.children.length > 0) {
+            collectComponents(component.children);
+          }
+        });
+      };
+      
+      collectComponents(this.components);
+      return allComponents;
+    },
+
+    // Helper method to convert a single component to HTML with nested support
+    componentToHTML(component, indentLevel = 1) {
+      const indent = '  '.repeat(indentLevel);
+      let html = '';
+      
+      // Determine which classes/styles to use based on output type
+      let classAttribute = '';
+      let styleAttribute = '';
+      
+      if (this.outputType === 'tailwind') {
+        classAttribute = component.classes ? ` class="${component.classes}"` : '';
+      } else if (this.outputType === 'css-classes') {
+        classAttribute = ` class="component-${component.id}"`;
+      } else if (this.outputType === 'inline-styles') {
+        if (component.customStyles) {
+          const styleStr = Object.entries(component.customStyles)
+            .map(([key, value]) => {
+              const kebabKey = key.replace(/([A-Z])/g, "-$1").toLowerCase();
+              return `${kebabKey}: ${value}`;
+            })
+            .join('; ');
+          styleAttribute = styleStr ? ` style="${styleStr}"` : '';
+        }
+      }
+
+      switch (component.type) {
+        case 'header':
+          html += `${indent}<header${classAttribute}${styleAttribute}>${component.content}</header>\n`;
+          break;
+        case 'paragraph':
+          html += `${indent}<p${classAttribute}${styleAttribute}>${component.content}</p>\n`;
+          break;
+        case 'heading':
+          const level = component.level || 1;
+          html += `${indent}<h${level}${classAttribute}${styleAttribute}>${component.content}</h${level}>\n`;
+          break;
+        case 'button':
+          html += `${indent}<button${classAttribute}${styleAttribute}>${component.content}</button>\n`;
+          break;
+        case 'image':
+          html += `${indent}<img src="${component.src}" alt="${component.alt || ''}"${classAttribute}${styleAttribute}>\n`;
+          break;
+        case 'link':
+          const target = component.target === '_blank' ? ' target="_blank"' : '';
+          html += `${indent}<a href="${component.href}"${target}${classAttribute}${styleAttribute}>${component.content}</a>\n`;
+          break;
+        case 'container':
+          html += `${indent}<div${classAttribute}${styleAttribute}>\n`;
+          if (component.children && component.children.length > 0) {
+            component.children.forEach(child => {
+              html += this.componentToHTML(child, indentLevel + 1);
+            });
+          }
+          html += `${indent}</div>\n`;
+          break;
+        case 'grid':
+          html += `${indent}<div${classAttribute}${styleAttribute}>\n`;
+          if (component.children && component.children.length > 0) {
+            component.children.forEach(child => {
+              html += this.componentToHTML(child, indentLevel + 1);
+            });
+          }
+          html += `${indent}</div>\n`;
+          break;
+        case 'flexbox':
+          html += `${indent}<div${classAttribute}${styleAttribute}>\n`;
+          if (component.children && component.children.length > 0) {
+            component.children.forEach(child => {
+              html += this.componentToHTML(child, indentLevel + 1);
+            });
+          }
+          html += `${indent}</div>\n`;
+          break;
+        case 'section':
+          html += `${indent}<section${classAttribute}${styleAttribute}>\n`;
+          if (component.children && component.children.length > 0) {
+            component.children.forEach(child => {
+              html += this.componentToHTML(child, indentLevel + 1);
+            });
+          }
+          html += `${indent}</section>\n`;
+          break;
+        case 'input':
+          html += `${indent}<div${classAttribute}${styleAttribute}>\n`;
+          if (component.label) {
+            html += `${indent}  <label>${component.label}</label>\n`;
+          }
+          html += `${indent}  <input type="${component.inputType || 'text'}" placeholder="${component.placeholder || ''}"${component.required ? ' required' : ''}>\n`;
+          html += `${indent}</div>\n`;
+          break;
+        case 'textarea':
+          html += `${indent}<div${classAttribute}${styleAttribute}>\n`;
+          if (component.label) {
+            html += `${indent}  <label>${component.label}</label>\n`;
+          }
+          html += `${indent}  <textarea placeholder="${component.placeholder || ''}" rows="${component.rows || 4}"${component.required ? ' required' : ''}></textarea>\n`;
+          html += `${indent}</div>\n`;
+          break;
+        case 'select':
+          html += `${indent}<div${classAttribute}${styleAttribute}>\n`;
+          if (component.label) {
+            html += `${indent}  <label>${component.label}</label>\n`;
+          }
+          html += `${indent}  <select>\n`;
+          html += `${indent}    <option value="">${component.placeholder || 'Choose an option'}</option>\n`;
+          if (component.options && component.options.length > 0) {
+            component.options.forEach(option => {
+              html += `${indent}    <option value="${option.value}">${option.label}</option>\n`;
+            });
+          }
+          html += `${indent}  </select>\n`;
+          html += `${indent}</div>\n`;
+          break;
+        case 'hero':
+          html += `${indent}<section${classAttribute}${styleAttribute}>\n`;
+          html += `${indent}  <div class="container">\n`;
+          html += `${indent}    <h2>${component.heading}</h2>\n`;
+          html += `${indent}    <p>${component.subheading}</p>\n`;
+          html += `${indent}    <div class="hero-content">\n`;
+          html += `${indent}      <div class="hero-text">\n`;
+          html += `${indent}        <p>${component.content}</p>\n`;
+          html += `${indent}      </div>\n`;
+          html += `${indent}      <div class="hero-image">\n`;
+          html += `${indent}        <img src="${component.imageUrl}" alt="Hero image">\n`;
+          html += `${indent}      </div>\n`;
+          html += `${indent}    </div>\n`;
+          html += `${indent}  </div>\n`;
+          html += `${indent}</section>\n`;
+          break;
+        case 'features':
+          html += `${indent}<section${classAttribute}${styleAttribute}>\n`;
+          html += `${indent}  <div class="container">\n`;
+          if (component.items && component.items.length > 0) {
+            component.items.forEach(item => {
+              html += `${indent}    <div class="feature-item">\n`;
+              html += `${indent}      <h3>${item.title}</h3>\n`;
+              html += `${indent}      <p>${item.description}</p>\n`;
+              html += `${indent}    </div>\n`;
+            });
+          }
+          html += `${indent}  </div>\n`;
+          html += `${indent}</section>\n`;
+          break;
+        case 'cta':
+          html += `${indent}<section${classAttribute}${styleAttribute}>\n`;
+          html += `${indent}  <div class="container">\n`;
+          html += `${indent}    <h2>${component.heading}</h2>\n`;
+          html += `${indent}    <button>${component.buttonText}</button>\n`;
+          html += `${indent}  </div>\n`;
+          html += `${indent}</section>\n`;
+          break;
+        case 'card':
+          html += `${indent}<div${classAttribute}${styleAttribute}>\n`;
+          if (component.imageUrl) {
+            html += `${indent}  <img src="${component.imageUrl}" alt="Card image">\n`;
+          }
+          html += `${indent}  <div class="card-content">\n`;
+          html += `${indent}    <h3>${component.title}</h3>\n`;
+          html += `${indent}    <p>${component.content}</p>\n`;
+          if (component.buttonText) {
+            html += `${indent}    <button>${component.buttonText}</button>\n`;
+          }
+          html += `${indent}  </div>\n`;
+          html += `${indent}</div>\n`;
+          break;
+        case 'navbar':
+          html += `${indent}<nav${classAttribute}${styleAttribute}>\n`;
+          html += `${indent}  <div class="nav-container">\n`;
+          html += `${indent}    <div class="nav-brand">${component.brand}</div>\n`;
+          if (component.items && component.items.length > 0) {
+            html += `${indent}    <ul class="nav-menu">\n`;
+            component.items.forEach(item => {
+              html += `${indent}      <li><a href="${item.href}">${item.label}</a></li>\n`;
+            });
+            html += `${indent}    </ul>\n`;
+          }
+          html += `${indent}  </div>\n`;
+          html += `${indent}</nav>\n`;
+          break;
+        case 'footer':
+          html += `${indent}<footer${classAttribute}${styleAttribute}>\n`;
+          html += `${indent}  <div class="footer-container">\n`;
+          html += `${indent}    <div class="footer-brand">${component.brand}</div>\n`;
+          if (component.columns && component.columns.length > 0) {
+            component.columns.forEach(column => {
+              html += `${indent}    <div class="footer-column">\n`;
+              html += `${indent}      <h4>${column.title}</h4>\n`;
+              if (column.links && column.links.length > 0) {
+                html += `${indent}      <ul>\n`;
+                column.links.forEach(link => {
+                  html += `${indent}        <li><a href="${link.href}">${link.label}</a></li>\n`;
+                });
+                html += `${indent}      </ul>\n`;
+              }
+              html += `${indent}    </div>\n`;
+            });
+          }
+          html += `${indent}    <div class="footer-copyright">${component.copyright}</div>\n`;
+          html += `${indent}  </div>\n`;
+          html += `${indent}</footer>\n`;
+          break;
+        case 'table':
+          html += `${indent}<table${classAttribute}${styleAttribute}>\n`;
+          if (component.headers && component.headers.length > 0) {
+            html += `${indent}  <thead>\n${indent}    <tr>\n`;
+            component.headers.forEach(header => {
+              html += `${indent}      <th>${header.content || header}</th>\n`;
+            });
+            html += `${indent}    </tr>\n${indent}  </thead>\n`;
+          }
+          if (component.rows && component.rows.length > 0) {
+            html += `${indent}  <tbody>\n`;
+            component.rows.forEach(row => {
+              html += `${indent}    <tr>\n`;
+              if (row.cells) {
+                row.cells.forEach(cell => {
+                  html += `${indent}      <td>${cell.content || cell}</td>\n`;
+                });
+              } else {
+                row.forEach(cell => {
+                  html += `${indent}      <td>${cell}</td>\n`;
+                });
+              }
+              html += `${indent}    </tr>\n`;
+            });
+            html += `${indent}  </tbody>\n`;
+          }
+          html += `${indent}</table>\n`;
+          break;
+        // Add other component types as needed...
+        default:
+          html += `${indent}<!-- Unknown component type: ${component.type} -->\n`;
+          break;
+      }
+      
       return html;
     },
     

@@ -102,8 +102,27 @@ const copyToClipboard = () => {
 const handleDrop = (event) => {
   event.preventDefault();
   if (store.currentlyDragging) {
-    // Add to root level
-    store.addComponent(store.currentlyDragging);
+    if (store.currentlyDragging.from === 'existing') {
+      // Handle moving existing component to root level
+      const originalId = store.currentlyDragging.originalId;
+      
+      // Remove from original location first
+      store.removeComponent(originalId);
+      
+      // Create new component with new ID
+      const newComponent = {
+        ...store.currentlyDragging,
+        id: `${store.currentlyDragging.type}-${Date.now()}`,
+      };
+      delete newComponent.from;
+      delete newComponent.originalId;
+      
+      // Add to root level
+      store.addComponent(newComponent);
+    } else {
+      // Handle new component from toolbox
+      store.addComponent(store.currentlyDragging);
+    }
     store.setDragging(null);
   }
 };
