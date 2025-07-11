@@ -324,7 +324,7 @@ const generatePreviewCSS = () => {
     </div>
     
     <!-- Properties Panel -->
-    <div v-if="selectedComponent" class="w-72 bg-white border-l border-gray-200 overflow-y-auto">
+    <div class="w-80 bg-white border-l border-gray-200 overflow-y-auto">
       <PropertiesPanel />
     </div>
     
