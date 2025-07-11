@@ -102,9 +102,10 @@ export const useEditorStore = defineStore('editor', {
       // Save current state for undo
       this.saveState();
       
-      const index = this.components.findIndex(c => c.id === id);
-      if (index !== -1) {
-        this.components[index] = { ...this.components[index], ...properties };
+      // Find component recursively using the existing findComponentById method
+      const component = this.findComponentById(id);
+      if (component) {
+        Object.assign(component, properties);
       }
     },
     
@@ -112,16 +113,17 @@ export const useEditorStore = defineStore('editor', {
       // Save current state for undo
       this.saveState();
       
-      const index = this.components.findIndex(c => c.id === id);
-      if (index !== -1) {
+      // Find component recursively using the existing findComponentById method
+      const component = this.findComponentById(id);
+      if (component) {
         // Đảm bảo customStyles tồn tại
-        if (!this.components[index].customStyles) {
-          this.components[index].customStyles = {};
+        if (!component.customStyles) {
+          component.customStyles = {};
         }
         
         // Cập nhật thuộc tính style
-        this.components[index].customStyles = {
-          ...this.components[index].customStyles,
+        component.customStyles = {
+          ...component.customStyles,
           ...styleProperties
         };
       }
@@ -721,7 +723,22 @@ export const useEditorStore = defineStore('editor', {
   getters: {
     getSelectedComponent: (state) => {
       if (!state.selectedComponent) return null;
-      return state.components.find(c => c.id === state.selectedComponent);
+      
+      // Use the existing findComponentById method to search recursively
+      const findComponent = (id, componentList = state.components) => {
+        for (const component of componentList) {
+          if (component.id === id) {
+            return component;
+          }
+          if (component.children && component.children.length > 0) {
+            const found = findComponent(id, component.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+      
+      return findComponent(state.selectedComponent);
     }
   }
 });
