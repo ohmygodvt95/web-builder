@@ -19,6 +19,9 @@ const exportedCode = ref('');
 const importCode = ref('');
 const newTemplateName = ref('');
 
+// Sidebar state
+const sidebarExpanded = ref(false);
+
 const components = computed(() => store.components);
 const selectedComponent = computed(() => store.getSelectedComponent);
 
@@ -165,14 +168,64 @@ const generatePreviewCSS = () => {
 
 <template>
   <div class="editor-container flex h-screen overflow-hidden">
-    <!-- Component Toolbox -->
-    <div class="w-64 bg-white border-r border-gray-200 overflow-y-auto">
-      <ComponentToolbox />
-    </div>
-    
-    <!-- Component Tree -->
-    <div class="w-64 bg-white border-r border-gray-200 overflow-y-auto">
-      <ComponentTree />
+    <!-- Left Sidebar - Components at Top, Tree Below -->
+    <div class="w-64 bg-white border-r border-gray-200 flex flex-col relative">
+      <!-- Components Section at Top -->
+      <div 
+        @mouseenter="sidebarExpanded = true"
+        class="flex-shrink-0 p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors relative"
+      >
+        <div class="flex items-center justify-between">
+          <h3 class="font-semibold text-gray-900">Components</h3>
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="16" 
+            height="16" 
+            fill="currentColor" 
+            viewBox="0 0 16 16"
+            :class="['transition-transform', sidebarExpanded ? 'rotate-90' : '']"
+          >
+            <path fill-rule="evenodd" d="M4.646 7.646a.5.5 0 0 1 .708 0L8 10.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 11 4.646 8.354a.5.5 0 0 1 0-.708z"/>
+          </svg>
+        </div>
+        
+        <!-- Expanded Components Panel (Right Side) -->
+        <div 
+          v-if="sidebarExpanded"
+          @mouseleave="sidebarExpanded = false"
+          class="absolute top-0 left-full w-80 h-screen bg-white border border-gray-200 shadow-xl z-50 flex flex-col"
+        >
+          <!-- Panel Header -->
+          <div class="flex-shrink-0 p-4 border-b border-gray-200 bg-gray-50">
+            <div class="flex items-center justify-between">
+              <h3 class="font-semibold text-gray-900">Component Library</h3>
+              <button 
+                @click="sidebarExpanded = false"
+                class="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Components Content with Scroll -->
+          <div class="flex-1 overflow-y-auto">
+            <ComponentToolbox />
+          </div>
+        </div>
+      </div>
+
+      <!-- Page Structure Section -->
+      <div class="flex-1 flex flex-col min-h-0">
+        <div class="flex-shrink-0 p-4 border-b border-gray-200 bg-gray-50">
+          <h3 class="font-semibold text-gray-900">Page Structure</h3>
+        </div>
+        <div class="flex-1 overflow-y-auto">
+          <ComponentTree />
+        </div>
+      </div>
     </div>
     
     <!-- Main Editor Canvas -->
@@ -216,7 +269,8 @@ const generatePreviewCSS = () => {
             title="Undo"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm3.5 9.5-5-5 1-1 5 5-1 1z"/>
+              <path d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
+              <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/>
             </svg>
           </button>
           <button 
@@ -225,7 +279,8 @@ const generatePreviewCSS = () => {
             title="Redo"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M8 1a7 7 0 1 1 0 14A7 7 0 0 1 8 1zM4.5 9.5l5-5 1 1-5 5-1-1z"/>
+              <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+              <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966a.25.25 0 0 1 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
             </svg>
           </button>
           <button 
@@ -234,8 +289,8 @@ const generatePreviewCSS = () => {
             title="Templates"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 0v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1z"/>
-              <path d="M6 5v5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"/>
+              <path d="M2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L12.5 2H2zm1-1h9l2 2v11a3 3 0 0 1-3 3H4a3 3 0 0 1-3-3V2a1 1 0 0 1 1-1z"/>
+              <path d="M4 5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5A.5.5 0 0 1 4 5zm0 2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5A.5.5 0 0 1 4 7zm0 2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5A.5.5 0 0 1 4 9z"/>
             </svg>
           </button>
           <button 

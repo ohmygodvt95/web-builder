@@ -6,6 +6,22 @@ const store = useEditorStore();
 
 const components = computed(() => store.components);
 
+// Collapsed state for each component
+const collapsedComponents = ref(new Set());
+
+const toggleCollapse = (componentId, event) => {
+  event.stopPropagation();
+  if (collapsedComponents.value.has(componentId)) {
+    collapsedComponents.value.delete(componentId);
+  } else {
+    collapsedComponents.value.add(componentId);
+  }
+};
+
+const isCollapsed = (componentId) => {
+  return collapsedComponents.value.has(componentId);
+};
+
 const getComponentIcon = (type) => {
   const icons = {
     header: '📄',
@@ -53,7 +69,12 @@ const removeChildComponent = (parentId, childId) => {
   store.removeChildFromContainer(parentId, childId);
 };
 
-// Flatten components into a tree structure with levels
+// Check if component has children
+const hasChildren = (component) => {
+  return component.children && component.children.length > 0;
+};
+
+// Flatten components into a tree structure with levels, respecting collapsed state
 const flattenComponents = (componentList, level = 0, parentId = null) => {
   const result = [];
   
@@ -65,7 +86,8 @@ const flattenComponents = (componentList, level = 0, parentId = null) => {
       parentId
     });
     
-    if (component.children && component.children.length > 0) {
+    // Only add children if this component is not collapsed
+    if (component.children && component.children.length > 0 && !isCollapsed(component.id)) {
       result.push(...flattenComponents(component.children, level + 1, component.id));
     }
   });
@@ -93,21 +115,21 @@ const handleItemLeave = (itemId, event) => {
 </script>
 
 <template>
-  <div class="bg-white border-r border-gray-200 h-full overflow-y-auto">
-    <div class="p-4 border-b border-gray-200">
+  <div class="bg-white h-full flex flex-col">
+    <div class="flex-shrink-0 p-4 border-b border-gray-200">
       <h3 class="text-lg font-bold text-gray-800">Component Tree</h3>
       <p class="text-xs text-gray-500 mt-1">{{ components.length }} component(s)</p>
     </div>
     
-    <div class="p-2">
+    <div class="flex-1 overflow-y-auto p-2">
       <div v-if="components.length === 0" class="text-center text-gray-400 py-8">
         <div class="text-4xl mb-2">🌳</div>
         <p class="text-sm">No components yet</p>
         <p class="text-xs">Drag components to the canvas</p>
       </div>
       
-      <!-- Flattened tree with proper indentation -->
-      <div v-else class="space-y-1">
+      <!-- Flattened tree with proper indentation and collapse/expand -->
+      <div v-else class="space-y-1 pb-4">
         <div 
           v-for="item in flattenedComponents" 
           :key="item.id"
@@ -125,6 +147,25 @@ const handleItemLeave = (itemId, event) => {
             @click="selectComponent(item.id)"
           >
             <div class="flex items-center flex-1 min-w-0">
+              <!-- Collapse/Expand button for components with children -->
+              <button 
+                v-if="hasChildren(item)"
+                @click.stop="toggleCollapse(item.id, $event)"
+                class="w-4 h-4 mr-1 flex items-center justify-center hover:bg-gray-200 rounded text-xs"
+              >
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="10" 
+                  height="10" 
+                  fill="currentColor" 
+                  viewBox="0 0 16 16"
+                  :class="['transition-transform', isCollapsed(item.id) ? '' : 'rotate-90']"
+                >
+                  <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                </svg>
+              </button>
+              <div v-else class="w-4 mr-1"></div>
+              
               <!-- Indentation icon -->
               <span v-if="item.level > 0" class="text-xs text-gray-400 mr-2">
                 {{ getIndentIcon(item.level) }}
@@ -136,6 +177,11 @@ const handleItemLeave = (itemId, event) => {
               <!-- Component type -->
               <span class="text-sm font-medium text-gray-700 truncate">
                 {{ item.type }}
+              </span>
+              
+              <!-- Children count for collapsed items -->
+              <span v-if="hasChildren(item) && isCollapsed(item.id)" class="text-xs text-gray-400 ml-2">
+                ({{ item.children.length }})
               </span>
               
               <!-- Component index -->

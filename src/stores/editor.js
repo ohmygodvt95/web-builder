@@ -326,6 +326,14 @@ export const useEditorStore = defineStore('editor', {
         html += '  .nav-menu { list-style: none; display: flex; gap: 1rem; margin: 0; padding: 0; }\n';
         html += '  .nav-menu a { text-decoration: none; color: inherit; }\n';
         html += '  .grid-item { background-color: #f0f0f0; padding: 1rem; border-radius: 4px; }\n';
+        html += '  .testimonial-content { text-align: center; }\n';
+        html += '  .rating { margin-bottom: 1rem; }\n';
+        html += '  .star { color: #fbbf24; font-size: 1.25rem; }\n';
+        html += '  .author-info { display: flex; align-items: center; justify-content: center; margin-top: 1rem; }\n';
+        html += '  .avatar { width: 3rem; height: 3rem; border-radius: 50%; margin-right: 1rem; }\n';
+        html += '  .author-name { font-weight: bold; }\n';
+        html += '  .author-position { color: #6b7280; }\n';
+        html += '  blockquote { font-style: italic; font-size: 1.125rem; margin: 1rem 0; }\n';
         html += '  @media (min-width: 768px) {\n';
         html += '    .hero-content { display: flex; align-items: center; }\n';
         html += '    .hero-text, .hero-image { width: 50%; }\n';
@@ -590,6 +598,56 @@ export const useEditorStore = defineStore('editor', {
             html += `${indent}  </tbody>\n`;
           }
           html += `${indent}</table>\n`;
+          break;
+        case 'list':
+          const listTag = component.listType || 'ul';
+          html += `${indent}<${listTag}${classAttribute}${styleAttribute}>\n`;
+          if (component.items && component.items.length > 0) {
+            component.items.forEach(item => {
+              html += `${indent}  <li>${item}</li>\n`;
+            });
+          } else {
+            // Default items if none exist
+            ['List item 1', 'List item 2', 'List item 3'].forEach(item => {
+              html += `${indent}  <li>${item}</li>\n`;
+            });
+          }
+          html += `${indent}</${listTag}>\n`;
+          break;
+        case 'contact':
+          html += `${indent}<div${classAttribute}${styleAttribute}>\n`;
+          html += `${indent}  <h2>${component.title || 'Contact Us'}</h2>\n`;
+          html += `${indent}  <p>${component.subtitle || 'Get in touch with us'}</p>\n`;
+          html += `${indent}  <form>\n`;
+          html += `${indent}    <input type="text" placeholder="Name" required>\n`;
+          html += `${indent}    <input type="email" placeholder="Email" required>\n`;
+          html += `${indent}    <textarea placeholder="Message" rows="4" required></textarea>\n`;
+          html += `${indent}    <button type="submit">${component.submitText || 'Send Message'}</button>\n`;
+          html += `${indent}  </form>\n`;
+          html += `${indent}</div>\n`;
+          break;
+        case 'testimonial':
+          html += `${indent}<div${classAttribute}${styleAttribute}>\n`;
+          html += `${indent}  <div class="testimonial-content">\n`;
+          // Add star rating
+          const rating = component.rating || 5;
+          html += `${indent}    <div class="rating">\n`;
+          for (let i = 0; i < rating; i++) {
+            html += `${indent}      <span class="star">★</span>\n`;
+          }
+          html += `${indent}    </div>\n`;
+          html += `${indent}    <blockquote>"${component.quote || 'Great testimonial quote goes here.'}"</blockquote>\n`;
+          html += `${indent}    <div class="author-info">\n`;
+          if (component.avatar) {
+            html += `${indent}      <img src="${component.avatar}" alt="${component.author}" class="avatar">\n`;
+          }
+          html += `${indent}      <div class="author-details">\n`;
+          html += `${indent}        <div class="author-name">${component.author || 'Customer Name'}</div>\n`;
+          html += `${indent}        <div class="author-position">${component.position || 'Customer Title'}</div>\n`;
+          html += `${indent}      </div>\n`;
+          html += `${indent}    </div>\n`;
+          html += `${indent}  </div>\n`;
+          html += `${indent}</div>\n`;
           break;
         // Add other component types as needed...
         default:
