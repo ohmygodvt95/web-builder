@@ -97,6 +97,16 @@ const copyToClipboard = () => {
     .catch(() => toast.error('Failed to copy'));
 };
 
+// Handle drop events for nested components
+const handleDrop = (event) => {
+  event.preventDefault();
+  if (store.currentlyDragging) {
+    // Add to root level
+    store.addComponent(store.currentlyDragging);
+    store.setDragging(null);
+  }
+};
+
 // Generate CSS for preview display
 const generatePreviewCSS = () => {
   let css = '';
@@ -270,6 +280,8 @@ const generatePreviewCSS = () => {
           ref="editorCanvas" 
           class="editor-canvas min-h-[70vh] bg-white border border-gray-200 rounded-lg p-4 shadow-sm relative"
           @click="store.clearSelection()"
+          @drop="handleDrop"
+          @dragover.prevent
         >
           <div v-if="components.length === 0" class="flex flex-col items-center justify-center h-64 text-gray-400">
             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
