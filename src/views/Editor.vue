@@ -47,7 +47,7 @@ const handleExport = () => {
   
   if (exportType.value === 'html') {
     exportedCode.value = store.exportToHTML();
-  } else {
+  } else if (exportType.value === 'json') {
     exportedCode.value = store.exportToJSON();
   }
   
@@ -417,11 +417,11 @@ const generatePreviewCSS = () => {
         <div class="mb-4">
           <div class="flex space-x-4 mb-4">
             <label class="inline-flex items-center">
-              <input type="radio" v-model="exportType" value="html" class="form-radio">
+              <input type="radio" v-model="exportType" value="html" class="form-radio" @change="handleExport()">
               <span class="ml-2">HTML</span>
             </label>
             <label class="inline-flex items-center">
-              <input type="radio" v-model="exportType" value="json" class="form-radio">
+              <input type="radio" v-model="exportType" value="json" class="form-radio" @change="handleExport()">
               <span class="ml-2">JSON</span>
             </label>
           </div>

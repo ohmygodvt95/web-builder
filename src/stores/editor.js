@@ -529,6 +529,14 @@ export const useEditorStore = defineStore('editor', {
           html += `${indent}  <div class="card-content">\n`;
           html += `${indent}    <h3>${component.title}</h3>\n`;
           html += `${indent}    <p>${component.content}</p>\n`;
+          
+          // Handle children if any
+          if (component.children && component.children.length > 0) {
+            component.children.forEach(child => {
+              html += this.componentToHTML(child, indentLevel + 2);
+            });
+          }
+          
           if (component.buttonText) {
             html += `${indent}    <button>${component.buttonText}</button>\n`;
           }
