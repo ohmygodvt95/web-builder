@@ -6,6 +6,7 @@ import { toast } from 'vue3-toastify';
 import ComponentToolbox from '../components/editor/ComponentToolbox.vue';
 import PropertiesPanel from '../components/editor/PropertiesPanel.vue';
 import RenderComponent from '../components/editor/RenderComponent.vue';
+import ComponentTree from '../components/editor/ComponentTree.vue';
 
 const store = useEditorStore();
 
@@ -148,6 +149,11 @@ const generatePreviewCSS = () => {
     <!-- Component Toolbox -->
     <div class="w-64 bg-white border-r border-gray-200 overflow-y-auto">
       <ComponentToolbox />
+    </div>
+    
+    <!-- Component Tree -->
+    <div class="w-64 bg-white border-r border-gray-200 overflow-y-auto">
+      <ComponentTree />
     </div>
     
     <!-- Main Editor Canvas -->
