@@ -326,6 +326,59 @@ export const useEditorStore = defineStore('editor', {
         html += '  .nav-menu { list-style: none; display: flex; gap: 1rem; margin: 0; padding: 0; }\n';
         html += '  .nav-menu a { text-decoration: none; color: inherit; }\n';
         html += '  .grid-item { background-color: #f0f0f0; padding: 1rem; border-radius: 4px; }\n';
+        
+        // Pre-built Components CSS
+        // Hero Component
+        html += '  .hero-content { display: flex; align-items: center; gap: 2rem; padding: 3rem 0; }\n';
+        html += '  .hero-text { flex: 1; }\n';
+        html += '  .hero-image { flex: 1; }\n';
+        html += '  .hero-text h1 { font-size: 2.5rem; font-weight: bold; margin-bottom: 1rem; }\n';
+        html += '  .hero-text h2 { font-size: 1.25rem; color: #6b7280; margin-bottom: 1rem; }\n';
+        html += '  .hero-text p { color: #374151; margin-bottom: 1.5rem; }\n';
+        html += '  .hero-text button { background-color: #3b82f6; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 0.375rem; cursor: pointer; }\n';
+        
+        // Features Component  
+        html += '  .features-container { text-align: center; padding: 3rem 0; }\n';
+        html += '  .features-title { font-size: 2rem; font-weight: bold; margin-bottom: 1rem; }\n';
+        html += '  .features-subtitle { color: #6b7280; margin-bottom: 2rem; }\n';
+        html += '  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; }\n';
+        html += '  .feature-item { text-align: center; }\n';
+        html += '  .feature-icon { font-size: 2.5rem; margin-bottom: 1rem; }\n';
+        html += '  .feature-title { font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem; }\n';
+        html += '  .feature-description { color: #6b7280; }\n';
+        
+        // CTA Component
+        html += '  .cta-container { text-align: center; padding: 3rem 0; background-color: #f9fafb; }\n';
+        html += '  .cta-title { font-size: 2rem; font-weight: bold; margin-bottom: 1rem; }\n';
+        html += '  .cta-content { color: #6b7280; margin-bottom: 1.5rem; }\n';
+        html += '  .cta-button { background-color: #3b82f6; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 1rem; }\n';
+        
+        // Navbar Component
+        html += '  .nav-container { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; }\n';
+        html += '  .nav-brand { font-weight: bold; font-size: 1.125rem; }\n';
+        html += '  .nav-menu { list-style: none; display: flex; gap: 1.5rem; margin: 0; padding: 0; }\n';
+        html += '  .nav-menu a { text-decoration: none; color: inherit; transition: color 0.3s; }\n';
+        html += '  .nav-menu a:hover { color: #3b82f6; }\n';
+        
+        // Footer Component
+        html += '  .footer-container { text-align: center; padding: 2rem 0; background-color: #1f2937; color: white; }\n';
+        html += '  .footer-brand { font-weight: bold; font-size: 1.125rem; margin-bottom: 1rem; }\n';
+        html += '  .footer-copyright { color: #9ca3af; }\n';
+        
+        // Card Component
+        html += '  .card-content { padding: 1rem; }\n';
+        html += '  .card-content h3 { font-size: 1.125rem; font-weight: bold; margin-bottom: 0.5rem; }\n';
+        html += '  .card-content p { color: #6b7280; margin-bottom: 1rem; }\n';
+        html += '  .card-content button { background-color: #3b82f6; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.25rem; cursor: pointer; }\n';
+        
+        // Contact Form Component
+        html += '  .contact-form h2 { font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem; }\n';
+        html += '  .contact-form p { color: #6b7280; margin-bottom: 1.5rem; }\n';
+        html += '  .contact-form form { display: flex; flex-direction: column; gap: 1rem; }\n';
+        html += '  .contact-form input, .contact-form textarea { padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; }\n';
+        html += '  .contact-form button { background-color: #3b82f6; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 0.375rem; cursor: pointer; }\n';
+        
+        // Testimonial Component
         html += '  .testimonial-content { text-align: center; }\n';
         html += '  .rating { margin-bottom: 1rem; }\n';
         html += '  .star { color: #fbbf24; font-size: 1.25rem; }\n';
@@ -334,6 +387,16 @@ export const useEditorStore = defineStore('editor', {
         html += '  .author-name { font-weight: bold; }\n';
         html += '  .author-position { color: #6b7280; }\n';
         html += '  blockquote { font-style: italic; font-size: 1.125rem; margin: 1rem 0; }\n';
+        
+        // General Styles
+        html += '  .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 15px; }\n';
+        html += '  img { max-width: 100%; height: auto; }\n';
+        html += '  table { border-collapse: collapse; width: 100%; }\n';
+        html += '  th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }\n';
+        html += '  th { background-color: #f4f4f4; font-weight: bold; }\n';
+        html += '  .form-group { margin-bottom: 1rem; }\n';
+        html += '  .form-group label { display: block; margin-bottom: 0.5rem; font-weight: bold; }\n';
+        html += '  .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }\n';
         html += '  @media (min-width: 768px) {\n';
         html += '    .hero-content { display: flex; align-items: center; }\n';
         html += '    .hero-text, .hero-image { width: 50%; }\n';
@@ -486,15 +549,20 @@ export const useEditorStore = defineStore('editor', {
         case 'hero':
           html += `${indent}<section${classAttribute}${styleAttribute}>\n`;
           html += `${indent}  <div class="container">\n`;
-          html += `${indent}    <h2>${component.heading}</h2>\n`;
-          html += `${indent}    <p>${component.subheading}</p>\n`;
           html += `${indent}    <div class="hero-content">\n`;
           html += `${indent}      <div class="hero-text">\n`;
-          html += `${indent}        <p>${component.content}</p>\n`;
+          html += `${indent}        <h1>${component.heading || 'Hero Title'}</h1>\n`;
+          html += `${indent}        <h2>${component.subheading || 'Hero Subtitle'}</h2>\n`;
+          html += `${indent}        <p>${component.content || 'Hero description text goes here.'}</p>\n`;
+          if (component.buttonText) {
+            html += `${indent}        <button>${component.buttonText}</button>\n`;
+          }
           html += `${indent}      </div>\n`;
-          html += `${indent}      <div class="hero-image">\n`;
-          html += `${indent}        <img src="${component.imageUrl}" alt="Hero image">\n`;
-          html += `${indent}      </div>\n`;
+          if (component.imageUrl) {
+            html += `${indent}      <div class="hero-image">\n`;
+            html += `${indent}        <img src="${component.imageUrl}" alt="Hero image">\n`;
+            html += `${indent}      </div>\n`;
+          }
           html += `${indent}    </div>\n`;
           html += `${indent}  </div>\n`;
           html += `${indent}</section>\n`;
@@ -502,24 +570,53 @@ export const useEditorStore = defineStore('editor', {
         case 'features':
           html += `${indent}<section${classAttribute}${styleAttribute}>\n`;
           html += `${indent}  <div class="container">\n`;
+          html += `${indent}    <div class="text-center">\n`;
+          html += `${indent}      <h2>${component.title || 'Our Features'}</h2>\n`;
+          html += `${indent}      <p>${component.subtitle || 'Discover what makes us special'}</p>\n`;
+          html += `${indent}    </div>\n`;
+          html += `${indent}    <div class="features-grid">\n`;
           if (component.items && component.items.length > 0) {
             component.items.forEach(item => {
-              html += `${indent}    <div class="feature-item">\n`;
-              html += `${indent}      <h3>${item.title}</h3>\n`;
-              html += `${indent}      <p>${item.description}</p>\n`;
-              html += `${indent}    </div>\n`;
+              html += `${indent}      <div class="feature-item">\n`;
+              html += `${indent}        <div class="feature-icon">\n`;
+              html += `${indent}          <span>${item.icon || '⭐'}</span>\n`;
+              html += `${indent}        </div>\n`;
+              html += `${indent}        <h3>${item.title}</h3>\n`;
+              html += `${indent}        <p>${item.description}</p>\n`;
+              html += `${indent}      </div>\n`;
+            });
+          } else {
+            // Default features if none provided
+            const defaultFeatures = [
+              { title: 'Feature 1', description: 'Feature description', icon: '⭐' },
+              { title: 'Feature 2', description: 'Feature description', icon: '🚀' },
+              { title: 'Feature 3', description: 'Feature description', icon: '💡' }
+            ];
+            defaultFeatures.forEach(feature => {
+              html += `${indent}      <div class="feature-item">\n`;
+              html += `${indent}        <div class="feature-icon">\n`;
+              html += `${indent}          <span>${feature.icon}</span>\n`;
+              html += `${indent}        </div>\n`;
+              html += `${indent}        <h3>${feature.title}</h3>\n`;
+              html += `${indent}        <p>${feature.description}</p>\n`;
+              html += `${indent}      </div>\n`;
             });
           }
+          html += `${indent}    </div>\n`;
           html += `${indent}  </div>\n`;
           html += `${indent}</section>\n`;
           break;
         case 'cta':
           html += `${indent}<section${classAttribute}${styleAttribute}>\n`;
           html += `${indent}  <div class="container">\n`;
-          html += `${indent}    <h2>${component.heading}</h2>\n`;
-          html += `${indent}    <button>${component.buttonText}</button>\n`;
+          html += `${indent}    <div class="cta-container">\n`;
+          html += `${indent}      <h2>${component.heading || 'Call to Action'}</h2>\n`;
+          html += `${indent}      <p>${component.description || 'Take action today!'}</p>\n`;
+          html += `${indent}      <button class="cta-button">${component.buttonText || 'Get Started'}</button>\n`;
+          html += `${indent}    </div>\n`;
           html += `${indent}  </div>\n`;
           html += `${indent}</section>\n`;
+          break;
           break;
         case 'card':
           html += `${indent}<div${classAttribute}${styleAttribute}>\n`;
@@ -546,12 +643,20 @@ export const useEditorStore = defineStore('editor', {
         case 'navbar':
           html += `${indent}<nav${classAttribute}${styleAttribute}>\n`;
           html += `${indent}  <div class="nav-container">\n`;
-          html += `${indent}    <div class="nav-brand">${component.brand}</div>\n`;
+          html += `${indent}    <div class="nav-brand">${component.brand || 'Brand'}</div>\n`;
           if (component.items && component.items.length > 0) {
             html += `${indent}    <ul class="nav-menu">\n`;
             component.items.forEach(item => {
-              html += `${indent}      <li><a href="${item.href}">${item.label}</a></li>\n`;
+              html += `${indent}      <li><a href="${item.href || '#'}">${item.label}</a></li>\n`;
             });
+            html += `${indent}    </ul>\n`;
+          } else {
+            // Default menu items
+            html += `${indent}    <ul class="nav-menu">\n`;
+            html += `${indent}      <li><a href="#home">Home</a></li>\n`;
+            html += `${indent}      <li><a href="#about">About</a></li>\n`;
+            html += `${indent}      <li><a href="#services">Services</a></li>\n`;
+            html += `${indent}      <li><a href="#contact">Contact</a></li>\n`;
             html += `${indent}    </ul>\n`;
           }
           html += `${indent}  </div>\n`;
@@ -560,7 +665,6 @@ export const useEditorStore = defineStore('editor', {
         case 'footer':
           html += `${indent}<footer${classAttribute}${styleAttribute}>\n`;
           html += `${indent}  <div class="footer-container">\n`;
-          html += `${indent}    <div class="footer-brand">${component.brand}</div>\n`;
           if (component.columns && component.columns.length > 0) {
             component.columns.forEach(column => {
               html += `${indent}    <div class="footer-column">\n`;
@@ -568,14 +672,42 @@ export const useEditorStore = defineStore('editor', {
               if (column.links && column.links.length > 0) {
                 html += `${indent}      <ul>\n`;
                 column.links.forEach(link => {
-                  html += `${indent}        <li><a href="${link.href}">${link.label}</a></li>\n`;
+                  html += `${indent}        <li><a href="${link.href || '#'}">${link.label}</a></li>\n`;
                 });
                 html += `${indent}      </ul>\n`;
               }
               html += `${indent}    </div>\n`;
             });
+          } else {
+            // Default footer columns
+            html += `${indent}    <div class="footer-column">\n`;
+            html += `${indent}      <h4>Company</h4>\n`;
+            html += `${indent}      <ul>\n`;
+            html += `${indent}        <li><a href="#about">About Us</a></li>\n`;
+            html += `${indent}        <li><a href="#team">Our Team</a></li>\n`;
+            html += `${indent}        <li><a href="#careers">Careers</a></li>\n`;
+            html += `${indent}      </ul>\n`;
+            html += `${indent}    </div>\n`;
+            html += `${indent}    <div class="footer-column">\n`;
+            html += `${indent}      <h4>Services</h4>\n`;
+            html += `${indent}      <ul>\n`;
+            html += `${indent}        <li><a href="#consulting">Consulting</a></li>\n`;
+            html += `${indent}        <li><a href="#development">Development</a></li>\n`;
+            html += `${indent}        <li><a href="#support">Support</a></li>\n`;
+            html += `${indent}      </ul>\n`;
+            html += `${indent}    </div>\n`;
+            html += `${indent}    <div class="footer-column">\n`;
+            html += `${indent}      <h4>Contact</h4>\n`;
+            html += `${indent}      <ul>\n`;
+            html += `${indent}        <li><a href="#contact">Contact Us</a></li>\n`;
+            html += `${indent}        <li><a href="#support">Support</a></li>\n`;
+            html += `${indent}        <li><a href="#help">Help Center</a></li>\n`;
+            html += `${indent}      </ul>\n`;
+            html += `${indent}    </div>\n`;
           }
-          html += `${indent}    <div class="footer-copyright">${component.copyright}</div>\n`;
+          html += `${indent}    <div class="footer-copyright">\n`;
+          html += `${indent}      <p>${component.copyright || '© 2024 Your Company. All rights reserved.'}</p>\n`;
+          html += `${indent}    </div>\n`;
           html += `${indent}  </div>\n`;
           html += `${indent}</footer>\n`;
           break;
